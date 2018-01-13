@@ -1,0 +1,4 @@
+venv/
+*.pyc
+Python-Data-Science-and-Machine-Learning-Bootcamp/
+*/.ipynb_checkpoints/
