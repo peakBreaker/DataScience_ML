@@ -245,3 +245,143 @@ print('There are {} tokens in the dataset'
 Sweet! Lets integrate it with our pipeline
 
 ### Pipelines
+
+scikit pipelines are great for keeping our sequence of procedures tidy. Lets
+set up or earlier example with pipelines:
+
+#### Setting it up
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneCsRestClassifier
+from sklearn.model_selection import train_test_split
+
+pl = Pipeline([
+        ('clf', OneVsRestClassifier(LogisticRegression()))
+     ])
+
+X_train, X_test, y_train, y_test = train_test_split(
+                                   sample_df[['numeric']],
+                                   pd.get_dummies(sample_df['label']),
+                                   random_state=2)
+pl.fit(X_train, y_train)
+```
+
+Great, that proves it working.  However our real example needs to weed our
+missing values, so we add an imputer
+
+```python
+from sklearn.preprocessing import Imputer
+pl = Pipeline([
+     ('imp', Imputer()),
+     ('clf', OneVsRestClassifier(LogisticRegression()))
+    ])
+```
+
+Great, now lets add the text data!
+
+#### Add NLP to the pipeline
+
+Just to see how it integrates, lets do the NLP alone with the logistic
+regression
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(
+                                   sample_df['text'],
+                                   pd.get_dummies(sample_df['label']),
+                                   random_state=2)
+pl = Pipeline([
+        ('vec', CountVectorizer()),
+        ('clf', OneVsRestClassifier(LogisticRegression()))
+     ])
+```
+
+Now we can fit and score it like always. However we dont want to impute text
+data and we cant do NLP on numeric data, so we need to intoducte..
+
+#### Combining it with function transformers and feature unions
+
+In order to glue together the pipelines, we use function transformers and
+feature unions.  The idea is to make multiple pipelines and combine them
+together.
+
+
+```python
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.pipeline import FeatureUnion
+X_train, X_test, y_train, y_test = train_test_split(
+                                   sample_df[
+                                        ['numeric', 'with_missing', 'text']
+                                   ],
+                                   pd.get_dummies(sample_df['label']),
+                                   random_state=2)
+# Function transformers gets the data it wants
+get_text_data = FunctionTransformer(lambda x: x['text'], validate=False)
+get_numeric_data = FunctionTransformer(lambda x: x[['numeric', 'with_missing']],
+                                    validate=False)
+
+# Set up the different pipelines
+numeric_pipeline = Pipeline([
+        ('selector', get_numeric_data),
+        ('imputer', Imputer())
+    ])
+text_pipeline = Pipeline([
+        ('selector', get_text_data),
+        ('vectorizer', CountVectorizer())
+    ])
+
+# combine the pipelines
+pl = Pipeline([
+        ('union', FeatureUnion([
+            ('numeric', numeric_pipeline),
+            ('text', text_pipeline)
+        ])),
+        ('clf', OneVsRestClassifier(LogisticRegression()))
+     ])
+```
+
+Actually just running the FunctionTransformer objects .fit_transform method on our df will
+select out the columns from the dataframe which it has been configured for!
+
+Anyway, awesome - we now have a solid flow to work on, and can choose a more
+effective model.
+
+### Bringing it all together
+
+We have been only using a few columns till now, but our real dataset has much
+more to work with.  We'll use all our helperfunctions till now to combine all
+text columns, get all numeric columns and use a multilabel split:
+
+```python
+LABELS = ['Function', 'Use', 'Sharing', ..]  # Out target variables
+NON_LABELS = [c for c in df.columns if c not in LABELS]  # This will be our predictors
+# We also have the names of all numeric cols in the NUMERIC_COLUMNS variable
+
+dummy_labels = pd.get_dummies(df['labels'])  # Turn our target vars to numeric
+X_train, X_test, y_train, y_test = multilabel_train_test_split(
+                                   df[NON_LABELS], dummy_labels,
+                                   size=0.2)
+# Function transformers
+get_text_data = FunctionTransformer(combine_text_columns, validate=False)
+get_numeric_data = FunctionTransformer(lambda x: x[NUMERIC_COLUMNS], validate=False)
+
+# Build our pipeline
+pl = Pipeline([
+            ('union', FeatureUnion([
+                ('numeric_features', Pipeline([
+                    ('selector', get_numeric_data),
+                    ('imputer', Imputer())
+                ])),
+                ('text_features', Pipeline([
+                    ('selector', get_text_data),
+                    ('vectorizer', CountVectorizer)
+                ]))
+            ])
+        ),
+        ('clf', OneVsRestClassifier(LogisticRegression()))
+    ])
+```
+
+Great, now we can easily swap different parts of the pipeline out, such as
+trying other models etc!
