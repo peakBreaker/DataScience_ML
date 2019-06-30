@@ -12,7 +12,7 @@ of Graphical and Quantitative data analysis.
 
 Say we have a dataframe with data.  We want to examine it:
 
-```
+```python
 df.info()
 df.describe()
 df.columns
@@ -24,7 +24,7 @@ df.tail()
 Then on we can take a closer look at the columns, say for example we want to
 examine number of unique labels.
 
-```
+```python
 num_unique_labels = df[LABELS].apply(pd.Series.nunique)
 num_unique_labels.plot(kind='bar')
 
@@ -48,7 +48,7 @@ converted before we proceed. There are different ways of doing this:
 
 *Category types*
 
-```
+```python
 # Define the lambda function: categorize_label
 categorize_label = lambda x: x.astype('category')
 
@@ -57,7 +57,7 @@ df[LABELS] = df[LABELS].apply(categorize_label)
 ```
 
 *Dummies*
-```
+```python
 dummies = pd.get_dummies(df[LABELS], prefix_sep='_')
 
 dummies.head(2)
@@ -80,7 +80,7 @@ Since we are trying to solve a classification problem, and we want our model to
 be penalized heavily on being confident on wrong guesses, we choose the log
 loss function as our loss function
 
-```
+```python
 def compute_log_loss(predicted, actual, eps=1e-14):
     """ Computes the logarithmic loss between predicted and
     actual when these are 1D arrays.
@@ -117,7 +117,7 @@ create a utility function.  It can be found in the multilabel.py file in this
 repo.
 
 
-```
+```python
 data_to_train = df[NUMERICAL_COLUMNS].fillna(-1000)
 targets = pd.get_dummies(df[LABELS])
 X_train, X_test, y_train, y_test = multilabel_train_test_split(
@@ -133,7 +133,7 @@ Lets use a simple `LogisticRegression` model on our data to begin with. We use
 the `OneVsRestClassifier` strategy to fit our model over multiclass
 classification:
 
-```
+```python
 # Train our model
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
@@ -155,7 +155,7 @@ in motion
 If this were a competition, we would now load the holdout data, predict on it,
 and submit a valid csv file with predictions.  Lets see this in action
 
-```
+```python
 holdout = pd.read_csv('Holdout.csv', index_col=0).fillna(-1000)
 
 predictions = clf.predict_proba(holdout[NUMERIC_COLUMNS]).fillna(-1000)
@@ -195,7 +195,7 @@ concepts in NLP we'll introduce here are as following:
 Lets get started with a bag of words approach on our data.  Naturally
 Scikit-Learn got us covered with the `CountVectorizer`
 
-```
+```python
 from sklearn.feature_extraction.text import CountVectorizer
 
 TOKENS_BASIC = '\\S+(?=\\s+)'  # Tokenization regex
@@ -215,7 +215,7 @@ print('Num tokens in Program_Description using only whitespace : {}'
 Lets create a helperfunction to combine all our text data so we can more easily
 work with it:
 
-```
+```python
 # Define combine_text_columns()
 def combine_text_columns(data_frame, to_drop=NUMERIC_COLUMNS + LABELS):
     """ converts all text in each row of data_frame to single vector """
@@ -234,7 +234,7 @@ def combine_text_columns(data_frame, to_drop=NUMERIC_COLUMNS + LABELS):
 Using this function should give us a series with all the text data, which we
 can run through our representation.
 
-```
+```python
 text_vector = combine_text_columns(df)
 vec_alphanumeric = CountVectorizer(token_pattern=TOKENS_ALPHANUMERIC)
 vec_alphanumeric.fit_transform(text_vector)
