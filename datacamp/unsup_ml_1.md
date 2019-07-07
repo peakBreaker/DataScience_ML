@@ -34,6 +34,7 @@ plt.scatter(xs,ys,c=labels)
 plt.scatter(centroids_x,centroids_y,marker='D',s=100)
 ```
 
+![kmeans clustering](./kmeans_clusters.png)
 
 ### Measuring quality
 
@@ -52,6 +53,8 @@ for k in ks:
     inertias.append(model.inertia_)
 plt.plot(ks, inertias, '-o')
 ```
+
+![inertia cluster plot](./kmeans_elbow.png)
 
 - Crosstabbing using labeled data.  It takes to pd columns, say targets and
   predictions and creates a matrix of targets in columns and predictions in
